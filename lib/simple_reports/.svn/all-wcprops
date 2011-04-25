@@ -1,0 +1,23 @@
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/svnct/!svn/ver/2757/trunk/vendor/plugins/simple_reports/lib/simple_reports
+END
+xml_renderer.rb
+K 25
+svn:wc:ra_dav:version-url
+V 91
+/svnct/!svn/ver/2757/trunk/vendor/plugins/simple_reports/lib/simple_reports/xml_renderer.rb
+END
+abstract_renderer.rb
+K 25
+svn:wc:ra_dav:version-url
+V 96
+/svnct/!svn/ver/1431/trunk/vendor/plugins/simple_reports/lib/simple_reports/abstract_renderer.rb
+END
+html_renderer.rb
+K 25
+svn:wc:ra_dav:version-url
+V 92
+/svnct/!svn/ver/1456/trunk/vendor/plugins/simple_reports/lib/simple_reports/html_renderer.rb
+END

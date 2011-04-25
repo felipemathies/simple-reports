@@ -1,0 +1,35 @@
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/svnct/!svn/ver/2757/trunk/vendor/plugins/simple_reports
+END
+Rakefile
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/svnct/!svn/ver/718/trunk/vendor/plugins/simple_reports/Rakefile
+END
+init.rb
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/svnct/!svn/ver/945/trunk/vendor/plugins/simple_reports/init.rb
+END
+install.rb
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/svnct/!svn/ver/718/trunk/vendor/plugins/simple_reports/install.rb
+END
+uninstall.rb
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/svnct/!svn/ver/718/trunk/vendor/plugins/simple_reports/uninstall.rb
+END
+README
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/svnct/!svn/ver/736/trunk/vendor/plugins/simple_reports/README
+END

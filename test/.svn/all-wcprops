@@ -1,0 +1,41 @@
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/svnct/!svn/ver/1456/trunk/vendor/plugins/simple_reports/test
+END
+test_helper.rb
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/svnct/!svn/ver/949/trunk/vendor/plugins/simple_reports/test/test_helper.rb
+END
+xml_renderer_test.rb
+K 25
+svn:wc:ra_dav:version-url
+V 82
+/svnct/!svn/ver/1114/trunk/vendor/plugins/simple_reports/test/xml_renderer_test.rb
+END
+simple_reports_test.rb
+K 25
+svn:wc:ra_dav:version-url
+V 84
+/svnct/!svn/ver/1431/trunk/vendor/plugins/simple_reports/test/simple_reports_test.rb
+END
+abstract_renderer_test.rb
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/svnct/!svn/ver/1431/trunk/vendor/plugins/simple_reports/test/abstract_renderer_test.rb
+END
+test_fixtures.rb
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/svnct/!svn/ver/1034/trunk/vendor/plugins/simple_reports/test/test_fixtures.rb
+END
+html_renderer_test.rb
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/svnct/!svn/ver/1456/trunk/vendor/plugins/simple_reports/test/html_renderer_test.rb
+END

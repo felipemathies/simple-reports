@@ -1,0 +1,438 @@
+require File.join(File.dirname(__FILE__), 'test_helper.rb')
+require File.join(File.dirname(__FILE__), 'test_fixtures.rb')
+require 'mocha'
+
+##########################################
+#TODO colocar opcoes de ordenacao nas colunas nao agrupadas
+##########################################
+
+class SimpleReportsTest < Test::Unit::TestCase
+  def setup
+    @data = TestFixtures.data
+  end
+  
+  def test_html_report_should_create_new_instance_and_renderize_html
+    report = SimpleReports::Report.html_report('name') do |r|
+      r.column(:ha)
+    end
+
+    assert_instance_of String, report
+  end
+    
+  def test_xml_report_should_create_new_instance_and_renderize_xml
+    report = SimpleReports::Report.xml_report('name') do |r|
+      r.column(:ha)
+    end
+
+    assert_instance_of String, report
+  end
+  
+  def test_report_should_allow_only_option_group
+    assert_raise RuntimeError do 
+      SimpleReports::Report.new "teste", {:bla => true}
+    end
+    
+    assert_nothing_raised do
+      SimpleReports::Report.new "teste", {:group => true}
+    end
+  end
+  
+  def test_column_should_allow_only_option_label
+    r = SimpleReports::Report.new "teste"
+  
+    assert_raise RuntimeError do 
+      r.column(:test, :abadaba => true) do        
+      end
+    end
+    
+    assert_nothing_raised do
+      r.column(:test, :label => "Label") do        
+      end
+      r.column(:test2)
+    end 
+  end
+  
+  def test_group_should_allow_options_group_by_and_group_name
+    r = SimpleReports::Report.new "teste"
+  
+    assert_raise RuntimeError do 
+      r.group(:group, {:invalid_option => true})
+    end
+    assert_nothing_raised RuntimeError do 
+      r.group(:group, {:group_by=>''})
+    end
+    assert_nothing_raised do 
+      r.group(:group, {:group_name=>'', :group_by=>''})
+    end
+  end
+      
+  def test_total_should_allow_option_if
+    r = SimpleReports::Report.new "teste"
+
+    assert_nothing_raised RuntimeError do 
+      r.total(:if, {:if=>false}) do
+      end
+    end
+  
+    assert_raise RuntimeError do 
+      r.total(:total, {:option => false}) do
+      end
+    end
+  end
+  
+  def test_total_should_require_block
+    r = SimpleReports::Report.new "teste"
+  
+    assert_raise RuntimeError do 
+      r.total(:column)
+    end
+    
+    assert_nothing_raised do 
+      r.total(:column) do
+      end
+    end        
+  end
+  
+  def test_relatorio_should_not_require_anything
+    assert_nothing_raised do 
+      SimpleReports::Report.new
+    end
+  end
+  
+  def test_report_should_always_group_data_even_if_there_is_no_groups_or_totals
+    data = [
+      VO.new("soccer", "ball", "nike ball", 1),
+      VO.new("soccer", "ball", "adidas ball", 2),
+    ]
+    report = SimpleReports::Report.new do |r|
+      r.data=(data)
+      r.column(:sport)
+      r.column(:eq_type)
+    end
+    assert_instance_of Hash, report.grouped_data()
+
+    report = SimpleReports::Report.new do |r|
+      r.data=(data)
+      r.column(:sport)
+      r.column(:eq_type)
+      r.total(:price) do |list|
+        list.inject(0) { |memo, v| memo += v.price }
+      end
+    end
+    assert_instance_of Hash, report.grouped_data()
+  end
+  
+  def test_report_should_not_change_data
+    dados = @data
+    report = SimpleReports::Report.new "sports stuff" do |r|
+      r.column(:sport){|vo| vo.sport}
+      r.column(:eq_type, :label => "Equipment type")
+      r.column(:desc, :label => "Description") {|vo| vo.desc}
+      r.column(:price) { |vo| vo.price }
+      
+      r.group(:sport, :group_by => :sport, :group_name => Proc.new{|l| l.first.sport})
+      r.group(:desc)
+      
+      r.total(:price) do |list|
+        list.inject(0) { |memo, v| memo += v.price }
+      end
+      
+      r.data=(dados)
+    end
+    original_data = dados.inspect
+    new_data = report.data.inspect
+    
+    assert_equal original_data, new_data
+    assert_instance_of ActiveSupport::OrderedHash, report.grouped_data()
+  end
+  
+  def test_do_group_should_group_data_one_level
+    dados = @data
+    report = SimpleReports::Report.new "sports stuff" do |r|
+      r.column(:sport){|vo| vo.sport}
+      r.column(:eq_type, :label => "Equipment type") {|vo| vo.eq_type }
+      r.column(:desc, :label => "Description") {|vo| vo.desc}
+      r.column(:price)
+      
+      r.group(:sport, :group_name => Proc.new{|l| s = l.first.sport; "#{VO.code(s)} - #{s}"})
+      r.data=(dados)
+    end
+
+    expected = {
+      :total => [{}],
+      "volleyball" => {
+        :group_data => [ #objects
+        ],
+        :group_name => "02 - volleyball",
+        :total => [{}]
+      },
+      "soccer" => {
+        :group_data => [ #objects
+        ],
+        :group_name => "01 - soccer",
+        :total => [{}]
+      }
+    }
+
+    gdata = report.grouped_data
+    
+    assert_equal 4, gdata["volleyball"][:group_data].size
+    assert_equal 8, gdata["soccer"][:group_data].size
+
+    #now remove all the objects.. for simplicity sake
+    gdata["volleyball"][:group_data] = []
+    gdata["soccer"][:group_data] = []
+    assert_equal expected, gdata
+  end
+      
+  def test_do_group_should_group_data_two_levels
+    dados = @data
+    report = SimpleReports::Report.new "sports stuff" do |r|
+      r.column(:sport){|vo| vo.sport}
+      r.column(:eq_type, :label => "Equipment type") {|vo| vo.eq_type }
+      r.column(:desc, :label => "Description") {|vo| vo.desc}
+      r.column(:price) { |vo| vo.price }
+      
+      r.group(:sport, :group_name => Proc.new{|l|l.first.sport})
+      r.group(:equipment, :group_by => Proc.new {|v| v.eq_type}, :group_name => :eq_type)
+      
+      r.data=(dados)
+    end
+
+    expected = {
+      :total => {},
+      "volleyball" => {
+        :total => {},
+        :group_name => "volleyball",
+        "ball" => {
+          :group_data => [],
+          :group_name => "ball"
+        },
+        "shirt" => {
+          :group_data => [],
+          :group_name => "shirt"
+        }
+      },
+      "soccer" => {
+        :total => {},
+        :group_name => "soccer",
+        "ball" => {
+          :group_data => [],
+          :group_name => "ball"
+        },
+        "shirt" => {
+          :group_data => [],
+          :group_name => "shirt"
+        },
+        "tennis" => {
+          :group_data => [],
+          :group_name => "tennis"
+        },
+      }
+    }
+    gdata = report.grouped_data
+    
+    assert_equal expected.size, gdata.size
+    assert expected.keys.all?{ |i| gdata.keys.include?(i) }
+    assert_equal expected["volleyball"][:group_name], gdata["volleyball"][:group_name]
+    assert_equal expected["soccer"][:group_name], gdata["soccer"][:group_name]
+    
+    assert_equal expected["soccer"].size, gdata["soccer"].size
+    assert expected["soccer"].keys.all?{ |i| gdata["soccer"].keys.include?(i) }
+    assert_equal expected["soccer"]["ball"][:group_name], gdata["soccer"]["ball"][:group_name]
+
+    assert_equal expected["volleyball"].size, gdata["volleyball"].size
+    assert expected["volleyball"].keys.all?{ |i| gdata["volleyball"].keys.include?(i) }
+    assert_equal expected["volleyball"]["shirt"][:group_name], gdata["volleyball"]["shirt"][:group_name]
+  end
+      
+  def test_do_group_should_group_and_totalize_data
+    dados = @data
+    report = SimpleReports::Report.new "sports stuff" do |r|
+      r.column(:sport){|vo| vo.sport}
+      r.column(:eq_type, :label => "Equipment type") {|vo| vo.eq_type }
+      r.column(:desc, :label => "Description") {|vo| vo.desc}
+      r.column(:price)
+      
+      r.group(:sport, :group_name => Proc.new{|l|l.first.sport})
+      r.group(:eq_type, :group_name => Proc.new{|l|l.first.eq_type})
+      
+      r.total(:price, :if => Proc.new {|list| list.all?{|e| e.sport == list.first.sport}}) do |list|
+        list.inject(0) { |memo, v| memo += v.price }
+      end
+      
+      r.total(:sports) do |list|
+        list.map{|e| e.sport}.uniq.join('-')
+      end
+      
+      r.data=(dados)
+    end
+
+    gdata = report.send(:do_group, report.data)
+   
+    expected = {
+      :total => [{
+          #:price => 140, # not totalized because :if clause fails
+          :sports => "soccer-volleyball"
+        }],
+      "volleyball" => {
+        :group_name => "volleyball",
+        :total => [{
+            :price => 100,
+            :sports => "volleyball"
+          }],
+        "ball" => {
+          :group_data => [],
+          :group_name => "ball",
+          :total => [{
+              :price => 30,
+              :sports => "volleyball"
+            }]
+        },
+        "shirt" => {
+          :group_data => [],
+          :group_name => "shirt",
+          :total => [{
+              :price => 70,
+              :sports => "volleyball"
+            }]
+        }
+      },
+      "soccer" => {
+        :group_name => "soccer",
+        :total => [{
+            :price => 40,
+            :sports => "soccer"
+          }],
+        "ball" => {
+          :group_data => [],
+          :group_name => "ball",
+          :total => [{
+              :price => 3,
+              :sports => "soccer"
+            }],
+        },
+        "shirt" => {
+          :group_data => [],
+          :group_name => "shirt",
+          :total => [{
+              :price => 7,
+              :sports => "soccer"
+            }],
+        },
+        "tennis" => {
+          :group_data => [],
+          :group_name => "tennis",
+          :total => [{
+              :price => 30,
+              :sports => "soccer"
+            }],
+        },
+      }
+    }
+    
+    gdata = report.send(:do_group, report.data)
+
+    assert gdata[:total]
+    assert_equal expected[:total], gdata[:total]  
+    assert_nil gdata[:group_name]
+
+    assert_equal expected["volleyball"][:total], gdata["volleyball"][:total]
+    assert_equal expected["volleyball"]["ball"][:total], gdata["volleyball"]["ball"][:total]
+    
+    assert_equal expected["soccer"][:total], gdata["soccer"][:total]
+    assert_equal expected["soccer"]["tennis"][:total], gdata["soccer"]["tennis"][:total]
+    assert_equal expected["soccer"]["shirt"][:total], gdata["soccer"]["shirt"][:total]
+  end
+  
+  def test_totalize_show_multiples_totalize_data_with_label
+    dados = @data
+    report = SimpleReports::Report.new "sports stuff" do |r|
+      r.column(:sport){|vo| vo.sport}
+      r.column(:eq_type, :label => "Equipment type") {|vo| vo.eq_type }
+      r.column(:desc, :label => "Description") {|vo| vo.desc}
+      r.column(:price)
+      
+      r.group(:sport, :group_name => Proc.new{|l|l.first.sport})
+      
+      r.total(:price, {:label => "teste"}) do |list|
+        list.inject(0) { |memo, v| memo += v.price }
+      end
+
+      r.total :sport do |list|
+        'sport'
+      end
+      
+      r.total :price, {:label => "teste2"} do |list|
+        list.inject(0) { |memo, v| memo += v.price } / list.size
+      end
+
+      r.total :sport do |list|
+        'sport2'
+      end
+      
+      r.data=(dados)
+    end
+
+    gdata = report.send(:do_group, report.data)
+   
+    expected = {
+      :total => [
+        {:label => "teste", :sport => 'sport', :price => 140},
+        {:label => "teste2", :sport => 'sport2', :price => 11}
+      ],
+      "volleyball" => {
+        :group_name => "volleyball",
+        :group_data => [],
+        :total => [
+          {:label => "teste", :price => 100, :sport => 'sport'},
+          {:label => "teste2", :price => 25, :sport => 'sport2'}
+        ],
+      },
+      "soccer" => {
+        :group_name => "soccer",
+        :group_data => [],
+        :total => [
+          {:label => "teste", :price => 40, :sport => 'sport'},
+          {:label => "teste2", :price => 5, :sport => 'sport2'}
+        ],
+      }
+    }
+    
+    gdata = report.send(:do_group, report.data)
+    
+    assert gdata[:total]
+    assert_equal expected[:total], gdata[:total]  
+    assert_nil gdata[:group_name]
+
+    assert_equal expected["volleyball"][:total], gdata["volleyball"][:total]
+    assert_equal expected["soccer"][:total], gdata["soccer"][:total]
+  end
+    
+  def test_print_should_group_data_and_delegate_to_renderer
+    renderer = mock
+    renderer.expects(:print)
+
+    report = SimpleReports::Report.new do |r|
+      r.data = []
+    end
+    
+    report.stubs(:renderer).returns(renderer)
+    report.send(:print)
+  end
+    
+  def test_average_should_delegate_to_total
+    r = SimpleReports::Report.new "teste"
+    r.expects(:total).with(:col, {:opt => true}, {})
+    
+    r.average(:col, :met, :opt => true)    
+  end  
+  
+  def test_sum_should_delegate_to_total
+    r = SimpleReports::Report.new "teste"
+    r.expects(:total).with(:col, {:opt => true}, {})
+    
+    r.sum(:col, :met, :opt => true)    
+  end
+end
+  
